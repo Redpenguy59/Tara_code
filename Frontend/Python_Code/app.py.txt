@@ -1,0 +1,14 @@
+import sqlite3
+
+def ask_tara(passport, destination):
+    conn = sqlite3.connect('tara_migration.db')
+    cursor = conn.cursor()
+    # Look for the rule in the notebook
+    cursor.execute("SELECT requirement FROM mobility_logic WHERE origin=? AND dest=?", (passport, destination))
+    result = cursor.fetchone()
+
+    if result:
+        print(f"TARA says: For {passport} to {destination}, you need: {result[0]}")
+    else:
+        print("TARA says: I don't know that one yet!")
+    conn.close()

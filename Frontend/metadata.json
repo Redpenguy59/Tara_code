@@ -1,0 +1,8 @@
+{
+  "name": "TARA - Travel and Relocation Assistant",
+  "description": "Helping digital nomads, expats, and refugees navigate global bureaucracy with AI-powered document processing, application tracking, and appointment management.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}

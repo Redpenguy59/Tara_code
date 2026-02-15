@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+mistralai
+pandas
+python-dotenv
+pydantic
