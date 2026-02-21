@@ -31,7 +31,7 @@ import {
   getContextualQuestions, 
   checkVisaFreeStatus, 
   getBureaucracyGuidance,
-  addCitizenshipToProfile  // ← NEW: Import the helper function
+  addCitizenshipToProfile
 } from './services/geminiService';
 import { fetchNewsFromRSS } from './services/newsService';
 import { Application, UserDocument, Appointment, ApplicationStatus, NewsItem, UserProfile } from './types';
@@ -58,12 +58,6 @@ const TaraCoreContent: React.FC = () => {
   const currentLanguage = userProfile.language || 'en';
   const [theme, setTheme] = useState<'light' | 'dark'>((localStorage.getItem('tara_theme') as 'light' | 'dark') || 'light');
   
-  // NEW: Citizenship handling states
-  const [needsCitizenship, setNeedsCitizenship] = useState(false);
-  const [citizenshipPrompt, setCitizenshipPrompt] = useState('');
-  const [selectedCitizenship, setSelectedCitizenship] = useState('');
-  const [backendResponse, setBackendResponse] = useState<any>(null);
-
   // Security & View States
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [view, setView] = useState('dashboard');
@@ -89,6 +83,12 @@ const TaraCoreContent: React.FC = () => {
   const [isWizardLoading, setIsWizardLoading] = useState(false);
   const [appFilter, setAppFilter] = useState<ApplicationStatus | 'All'>('All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // NEW: Citizenship handling states
+  const [needsCitizenship, setNeedsCitizenship] = useState(false);
+  const [citizenshipPrompt, setCitizenshipPrompt] = useState('');
+  const [selectedCitizenship, setSelectedCitizenship] = useState('');
+  const [backendResponse, setBackendResponse] = useState<any>(null);
 
   const t = (key: TranslationKeys) => getTranslation(currentLanguage, key);
 
@@ -170,7 +170,7 @@ const TaraCoreContent: React.FC = () => {
         user_id: user?.email || userProfile.email || `temp_${Date.now()}`
       };
 
-      const nationalities = hasStoredCitizenship ? userProfile.nationalities.map(n => n.country) : [];
+      const nationalities = hasStoredCitizenship ? userProfile.nationalities.map((n: any) => n.country) : [];
       const visaFreeData = await checkVisaFreeStatus(nationalities, newAppCountry);
       const appID = `app-${Date.now()}`;
       
@@ -298,205 +298,6 @@ const TaraCoreContent: React.FC = () => {
     }
   };
 
-// ADD THIS NEW COUNTRIES ARRAY before the return statement (around line 280):
-// This provides the country options for the citizenship dropdown
-const COUNTRIES = [
-  { code: 'AF', name: 'Afghanistan' },
-  { code: 'AL', name: 'Albania' },
-  { code: 'DZ', name: 'Algeria' },
-  { code: 'AD', name: 'Andorra' },
-  { code: 'AO', name: 'Angola' },
-  { code: 'AG', name: 'Antigua and Barbuda' },
-  { code: 'AR', name: 'Argentina' },
-  { code: 'AM', name: 'Armenia' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'AT', name: 'Austria' },
-  { code: 'AZ', name: 'Azerbaijan' },
-  { code: 'BS', name: 'Bahamas' },
-  { code: 'BH', name: 'Bahrain' },
-  { code: 'BD', name: 'Bangladesh' },
-  { code: 'BB', name: 'Barbados' },
-  { code: 'BY', name: 'Belarus' },
-  { code: 'BE', name: 'Belgium' },
-  { code: 'BZ', name: 'Belize' },
-  { code: 'BJ', name: 'Benin' },
-  { code: 'BT', name: 'Bhutan' },
-  { code: 'BO', name: 'Bolivia' },
-  { code: 'BA', name: 'Bosnia and Herzegovina' },
-  { code: 'BW', name: 'Botswana' },
-  { code: 'BR', name: 'Brazil' },
-  { code: 'BN', name: 'Brunei' },
-  { code: 'BG', name: 'Bulgaria' },
-  { code: 'BF', name: 'Burkina Faso' },
-  { code: 'BI', name: 'Burundi' },
-  { code: 'KH', name: 'Cambodia' },
-  { code: 'CM', name: 'Cameroon' },
-  { code: 'CA', name: 'Canada' },
-  { code: 'CV', name: 'Cape Verde' },
-  { code: 'CF', name: 'Central African Republic' },
-  { code: 'TD', name: 'Chad' },
-  { code: 'CL', name: 'Chile' },
-  { code: 'CN', name: 'China' },
-  { code: 'CO', name: 'Colombia' },
-  { code: 'KM', name: 'Comoros' },
-  { code: 'CG', name: 'Congo' },
-  { code: 'CR', name: 'Costa Rica' },
-  { code: 'HR', name: 'Croatia' },
-  { code: 'CU', name: 'Cuba' },
-  { code: 'CY', name: 'Cyprus' },
-  { code: 'CZ', name: 'Czech Republic' },
-  { code: 'DK', name: 'Denmark' },
-  { code: 'DJ', name: 'Djibouti' },
-  { code: 'DM', name: 'Dominica' },
-  { code: 'DO', name: 'Dominican Republic' },
-  { code: 'EC', name: 'Ecuador' },
-  { code: 'EG', name: 'Egypt' },
-  { code: 'SV', name: 'El Salvador' },
-  { code: 'GQ', name: 'Equatorial Guinea' },
-  { code: 'ER', name: 'Eritrea' },
-  { code: 'EE', name: 'Estonia' },
-  { code: 'ET', name: 'Ethiopia' },
-  { code: 'FJ', name: 'Fiji' },
-  { code: 'FI', name: 'Finland' },
-  { code: 'FR', name: 'France' },
-  { code: 'GA', name: 'Gabon' },
-  { code: 'GM', name: 'Gambia' },
-  { code: 'GE', name: 'Georgia' },
-  { code: 'DE', name: 'Germany' },
-  { code: 'GH', name: 'Ghana' },
-  { code: 'GR', name: 'Greece' },
-  { code: 'GD', name: 'Grenada' },
-  { code: 'GT', name: 'Guatemala' },
-  { code: 'GN', name: 'Guinea' },
-  { code: 'GW', name: 'Guinea-Bissau' },
-  { code: 'GY', name: 'Guyana' },
-  { code: 'HT', name: 'Haiti' },
-  { code: 'HN', name: 'Honduras' },
-  { code: 'HU', name: 'Hungary' },
-  { code: 'IS', name: 'Iceland' },
-  { code: 'IN', name: 'India' },
-  { code: 'ID', name: 'Indonesia' },
-  { code: 'IR', name: 'Iran' },
-  { code: 'IQ', name: 'Iraq' },
-  { code: 'IE', name: 'Ireland' },
-  { code: 'IL', name: 'Israel' },
-  { code: 'IT', name: 'Italy' },
-  { code: 'JM', name: 'Jamaica' },
-  { code: 'JP', name: 'Japan' },
-  { code: 'JO', name: 'Jordan' },
-  { code: 'KZ', name: 'Kazakhstan' },
-  { code: 'KE', name: 'Kenya' },
-  { code: 'KI', name: 'Kiribati' },
-  { code: 'KW', name: 'Kuwait' },
-  { code: 'KG', name: 'Kyrgyzstan' },
-  { code: 'LA', name: 'Laos' },
-  { code: 'LV', name: 'Latvia' },
-  { code: 'LB', name: 'Lebanon' },
-  { code: 'LS', name: 'Lesotho' },
-  { code: 'LR', name: 'Liberia' },
-  { code: 'LY', name: 'Libya' },
-  { code: 'LI', name: 'Liechtenstein' },
-  { code: 'LT', name: 'Lithuania' },
-  { code: 'LU', name: 'Luxembourg' },
-  { code: 'MK', name: 'Macedonia' },
-  { code: 'MG', name: 'Madagascar' },
-  { code: 'MW', name: 'Malawi' },
-  { code: 'MY', name: 'Malaysia' },
-  { code: 'MV', name: 'Maldives' },
-  { code: 'ML', name: 'Mali' },
-  { code: 'MT', name: 'Malta' },
-  { code: 'MH', name: 'Marshall Islands' },
-  { code: 'MR', name: 'Mauritania' },
-  { code: 'MU', name: 'Mauritius' },
-  { code: 'MX', name: 'Mexico' },
-  { code: 'FM', name: 'Micronesia' },
-  { code: 'MD', name: 'Moldova' },
-  { code: 'MC', name: 'Monaco' },
-  { code: 'MN', name: 'Mongolia' },
-  { code: 'ME', name: 'Montenegro' },
-  { code: 'MA', name: 'Morocco' },
-  { code: 'MZ', name: 'Mozambique' },
-  { code: 'MM', name: 'Myanmar' },
-  { code: 'NA', name: 'Namibia' },
-  { code: 'NR', name: 'Nauru' },
-  { code: 'NP', name: 'Nepal' },
-  { code: 'NL', name: 'Netherlands' },
-  { code: 'NZ', name: 'New Zealand' },
-  { code: 'NI', name: 'Nicaragua' },
-  { code: 'NE', name: 'Niger' },
-  { code: 'NG', name: 'Nigeria' },
-  { code: 'KP', name: 'North Korea' },
-  { code: 'NO', name: 'Norway' },
-  { code: 'OM', name: 'Oman' },
-  { code: 'PK', name: 'Pakistan' },
-  { code: 'PW', name: 'Palau' },
-  { code: 'PA', name: 'Panama' },
-  { code: 'PG', name: 'Papua New Guinea' },
-  { code: 'PY', name: 'Paraguay' },
-  { code: 'PE', name: 'Peru' },
-  { code: 'PH', name: 'Philippines' },
-  { code: 'PL', name: 'Poland' },
-  { code: 'PT', name: 'Portugal' },
-  { code: 'QA', name: 'Qatar' },
-  { code: 'RO', name: 'Romania' },
-  { code: 'RU', name: 'Russia' },
-  { code: 'RW', name: 'Rwanda' },
-  { code: 'KN', name: 'Saint Kitts and Nevis' },
-  { code: 'LC', name: 'Saint Lucia' },
-  { code: 'VC', name: 'Saint Vincent and the Grenadines' },
-  { code: 'WS', name: 'Samoa' },
-  { code: 'SM', name: 'San Marino' },
-  { code: 'ST', name: 'Sao Tome and Principe' },
-  { code: 'SA', name: 'Saudi Arabia' },
-  { code: 'SN', name: 'Senegal' },
-  { code: 'RS', name: 'Serbia' },
-  { code: 'SC', name: 'Seychelles' },
-  { code: 'SL', name: 'Sierra Leone' },
-  { code: 'SG', name: 'Singapore' },
-  { code: 'SK', name: 'Slovakia' },
-  { code: 'SI', name: 'Slovenia' },
-  { code: 'SB', name: 'Solomon Islands' },
-  { code: 'SO', name: 'Somalia' },
-  { code: 'ZA', name: 'South Africa' },
-  { code: 'KR', name: 'South Korea' },
-  { code: 'SS', name: 'South Sudan' },
-  { code: 'ES', name: 'Spain' },
-  { code: 'LK', name: 'Sri Lanka' },
-  { code: 'SD', name: 'Sudan' },
-  { code: 'SR', name: 'Suriname' },
-  { code: 'SZ', name: 'Swaziland' },
-  { code: 'SE', name: 'Sweden' },
-  { code: 'CH', name: 'Switzerland' },
-  { code: 'SY', name: 'Syria' },
-  { code: 'TW', name: 'Taiwan' },
-  { code: 'TJ', name: 'Tajikistan' },
-  { code: 'TZ', name: 'Tanzania' },
-  { code: 'TH', name: 'Thailand' },
-  { code: 'TL', name: 'Timor-Leste' },
-  { code: 'TG', name: 'Togo' },
-  { code: 'TO', name: 'Tonga' },
-  { code: 'TT', name: 'Trinidad and Tobago' },
-  { code: 'TN', name: 'Tunisia' },
-  { code: 'TR', name: 'Turkey' },
-  { code: 'TM', name: 'Turkmenistan' },
-  { code: 'TV', name: 'Tuvalu' },
-  { code: 'UG', name: 'Uganda' },
-  { code: 'UA', name: 'Ukraine' },
-  { code: 'AE', name: 'United Arab Emirates' },
-  { code: 'GB', name: 'United Kingdom' },
-  { code: 'US', name: 'United States' },
-  { code: 'UY', name: 'Uruguay' },
-  { code: 'UZ', name: 'Uzbekistan' },
-  { code: 'VU', name: 'Vanuatu' },
-  { code: 'VA', name: 'Vatican City' },
-  { code: 'VE', name: 'Venezuela' },
-  { code: 'VN', name: 'Vietnam' },
-  { code: 'YE', name: 'Yemen' },
-  { code: 'ZM', name: 'Zambia' },
-  { code: 'ZW', name: 'Zimbabwe' }
-];
-
-
   const handleToggleStep = (appId: string, stepId: string) => {
     setApplications(prev => prev.map(app => {
       if (app.id !== appId) return app;
@@ -558,6 +359,203 @@ const COUNTRIES = [
     }
   };
 
+  // Countries array for citizenship dropdown
+  const COUNTRIES = [
+    { code: 'AF', name: 'Afghanistan' },
+    { code: 'AL', name: 'Albania' },
+    { code: 'DZ', name: 'Algeria' },
+    { code: 'AD', name: 'Andorra' },
+    { code: 'AO', name: 'Angola' },
+    { code: 'AG', name: 'Antigua and Barbuda' },
+    { code: 'AR', name: 'Argentina' },
+    { code: 'AM', name: 'Armenia' },
+    { code: 'AU', name: 'Australia' },
+    { code: 'AT', name: 'Austria' },
+    { code: 'AZ', name: 'Azerbaijan' },
+    { code: 'BS', name: 'Bahamas' },
+    { code: 'BH', name: 'Bahrain' },
+    { code: 'BD', name: 'Bangladesh' },
+    { code: 'BB', name: 'Barbados' },
+    { code: 'BY', name: 'Belarus' },
+    { code: 'BE', name: 'Belgium' },
+    { code: 'BZ', name: 'Belize' },
+    { code: 'BJ', name: 'Benin' },
+    { code: 'BT', name: 'Bhutan' },
+    { code: 'BO', name: 'Bolivia' },
+    { code: 'BA', name: 'Bosnia and Herzegovina' },
+    { code: 'BW', name: 'Botswana' },
+    { code: 'BR', name: 'Brazil' },
+    { code: 'BN', name: 'Brunei' },
+    { code: 'BG', name: 'Bulgaria' },
+    { code: 'BF', name: 'Burkina Faso' },
+    { code: 'BI', name: 'Burundi' },
+    { code: 'KH', name: 'Cambodia' },
+    { code: 'CM', name: 'Cameroon' },
+    { code: 'CA', name: 'Canada' },
+    { code: 'CV', name: 'Cape Verde' },
+    { code: 'CF', name: 'Central African Republic' },
+    { code: 'TD', name: 'Chad' },
+    { code: 'CL', name: 'Chile' },
+    { code: 'CN', name: 'China' },
+    { code: 'CO', name: 'Colombia' },
+    { code: 'KM', name: 'Comoros' },
+    { code: 'CG', name: 'Congo' },
+    { code: 'CR', name: 'Costa Rica' },
+    { code: 'HR', name: 'Croatia' },
+    { code: 'CU', name: 'Cuba' },
+    { code: 'CY', name: 'Cyprus' },
+    { code: 'CZ', name: 'Czech Republic' },
+    { code: 'DK', name: 'Denmark' },
+    { code: 'DJ', name: 'Djibouti' },
+    { code: 'DM', name: 'Dominica' },
+    { code: 'DO', name: 'Dominican Republic' },
+    { code: 'EC', name: 'Ecuador' },
+    { code: 'EG', name: 'Egypt' },
+    { code: 'SV', name: 'El Salvador' },
+    { code: 'GQ', name: 'Equatorial Guinea' },
+    { code: 'ER', name: 'Eritrea' },
+    { code: 'EE', name: 'Estonia' },
+    { code: 'ET', name: 'Ethiopia' },
+    { code: 'FJ', name: 'Fiji' },
+    { code: 'FI', name: 'Finland' },
+    { code: 'FR', name: 'France' },
+    { code: 'GA', name: 'Gabon' },
+    { code: 'GM', name: 'Gambia' },
+    { code: 'GE', name: 'Georgia' },
+    { code: 'DE', name: 'Germany' },
+    { code: 'GH', name: 'Ghana' },
+    { code: 'GR', name: 'Greece' },
+    { code: 'GD', name: 'Grenada' },
+    { code: 'GT', name: 'Guatemala' },
+    { code: 'GN', name: 'Guinea' },
+    { code: 'GW', name: 'Guinea-Bissau' },
+    { code: 'GY', name: 'Guyana' },
+    { code: 'HT', name: 'Haiti' },
+    { code: 'HN', name: 'Honduras' },
+    { code: 'HU', name: 'Hungary' },
+    { code: 'IS', name: 'Iceland' },
+    { code: 'IN', name: 'India' },
+    { code: 'ID', name: 'Indonesia' },
+    { code: 'IR', name: 'Iran' },
+    { code: 'IQ', name: 'Iraq' },
+    { code: 'IE', name: 'Ireland' },
+    { code: 'IL', name: 'Israel' },
+    { code: 'IT', name: 'Italy' },
+    { code: 'JM', name: 'Jamaica' },
+    { code: 'JP', name: 'Japan' },
+    { code: 'JO', name: 'Jordan' },
+    { code: 'KZ', name: 'Kazakhstan' },
+    { code: 'KE', name: 'Kenya' },
+    { code: 'KI', name: 'Kiribati' },
+    { code: 'KW', name: 'Kuwait' },
+    { code: 'KG', name: 'Kyrgyzstan' },
+    { code: 'LA', name: 'Laos' },
+    { code: 'LV', name: 'Latvia' },
+    { code: 'LB', name: 'Lebanon' },
+    { code: 'LS', name: 'Lesotho' },
+    { code: 'LR', name: 'Liberia' },
+    { code: 'LY', name: 'Libya' },
+    { code: 'LI', name: 'Liechtenstein' },
+    { code: 'LT', name: 'Lithuania' },
+    { code: 'LU', name: 'Luxembourg' },
+    { code: 'MK', name: 'Macedonia' },
+    { code: 'MG', name: 'Madagascar' },
+    { code: 'MW', name: 'Malawi' },
+    { code: 'MY', name: 'Malaysia' },
+    { code: 'MV', name: 'Maldives' },
+    { code: 'ML', name: 'Mali' },
+    { code: 'MT', name: 'Malta' },
+    { code: 'MH', name: 'Marshall Islands' },
+    { code: 'MR', name: 'Mauritania' },
+    { code: 'MU', name: 'Mauritius' },
+    { code: 'MX', name: 'Mexico' },
+    { code: 'FM', name: 'Micronesia' },
+    { code: 'MD', name: 'Moldova' },
+    { code: 'MC', name: 'Monaco' },
+    { code: 'MN', name: 'Mongolia' },
+    { code: 'ME', name: 'Montenegro' },
+    { code: 'MA', name: 'Morocco' },
+    { code: 'MZ', name: 'Mozambique' },
+    { code: 'MM', name: 'Myanmar' },
+    { code: 'NA', name: 'Namibia' },
+    { code: 'NR', name: 'Nauru' },
+    { code: 'NP', name: 'Nepal' },
+    { code: 'NL', name: 'Netherlands' },
+    { code: 'NZ', name: 'New Zealand' },
+    { code: 'NI', name: 'Nicaragua' },
+    { code: 'NE', name: 'Niger' },
+    { code: 'NG', name: 'Nigeria' },
+    { code: 'KP', name: 'North Korea' },
+    { code: 'NO', name: 'Norway' },
+    { code: 'OM', name: 'Oman' },
+    { code: 'PK', name: 'Pakistan' },
+    { code: 'PW', name: 'Palau' },
+    { code: 'PA', name: 'Panama' },
+    { code: 'PG', name: 'Papua New Guinea' },
+    { code: 'PY', name: 'Paraguay' },
+    { code: 'PE', name: 'Peru' },
+    { code: 'PH', name: 'Philippines' },
+    { code: 'PL', name: 'Poland' },
+    { code: 'PT', name: 'Portugal' },
+    { code: 'QA', name: 'Qatar' },
+    { code: 'RO', name: 'Romania' },
+    { code: 'RU', name: 'Russia' },
+    { code: 'RW', name: 'Rwanda' },
+    { code: 'KN', name: 'Saint Kitts and Nevis' },
+    { code: 'LC', name: 'Saint Lucia' },
+    { code: 'VC', name: 'Saint Vincent and the Grenadines' },
+    { code: 'WS', name: 'Samoa' },
+    { code: 'SM', name: 'San Marino' },
+    { code: 'ST', name: 'Sao Tome and Principe' },
+    { code: 'SA', name: 'Saudi Arabia' },
+    { code: 'SN', name: 'Senegal' },
+    { code: 'RS', name: 'Serbia' },
+    { code: 'SC', name: 'Seychelles' },
+    { code: 'SL', name: 'Sierra Leone' },
+    { code: 'SG', name: 'Singapore' },
+    { code: 'SK', name: 'Slovakia' },
+    { code: 'SI', name: 'Slovenia' },
+    { code: 'SB', name: 'Solomon Islands' },
+    { code: 'SO', name: 'Somalia' },
+    { code: 'ZA', name: 'South Africa' },
+    { code: 'KR', name: 'South Korea' },
+    { code: 'SS', name: 'South Sudan' },
+    { code: 'ES', name: 'Spain' },
+    { code: 'LK', name: 'Sri Lanka' },
+    { code: 'SD', name: 'Sudan' },
+    { code: 'SR', name: 'Suriname' },
+    { code: 'SZ', name: 'Swaziland' },
+    { code: 'SE', name: 'Sweden' },
+    { code: 'CH', name: 'Switzerland' },
+    { code: 'SY', name: 'Syria' },
+    { code: 'TW', name: 'Taiwan' },
+    { code: 'TJ', name: 'Tajikistan' },
+    { code: 'TZ', name: 'Tanzania' },
+    { code: 'TH', name: 'Thailand' },
+    { code: 'TL', name: 'Timor-Leste' },
+    { code: 'TG', name: 'Togo' },
+    { code: 'TO', name: 'Tonga' },
+    { code: 'TT', name: 'Trinidad and Tobago' },
+    { code: 'TN', name: 'Tunisia' },
+    { code: 'TR', name: 'Turkey' },
+    { code: 'TM', name: 'Turkmenistan' },
+    { code: 'TV', name: 'Tuvalu' },
+    { code: 'UG', name: 'Uganda' },
+    { code: 'UA', name: 'Ukraine' },
+    { code: 'AE', name: 'United Arab Emirates' },
+    { code: 'GB', name: 'United Kingdom' },
+    { code: 'US', name: 'United States' },
+    { code: 'UY', name: 'Uruguay' },
+    { code: 'UZ', name: 'Uzbekistan' },
+    { code: 'VU', name: 'Vanuatu' },
+    { code: 'VA', name: 'Vatican City' },
+    { code: 'VE', name: 'Venezuela' },
+    { code: 'VN', name: 'Vietnam' },
+    { code: 'YE', name: 'Yemen' },
+    { code: 'ZM', name: 'Zambia' },
+    { code: 'ZW', name: 'Zimbabwe' }
+  ];
+
   if (userProfile.isOnboarded && userProfile.isSecurityEnabled && !isUnlocked) {
     return <SecurityLock displayName={userProfile.displayName} expectedPin={userProfile.pinCode} onUnlock={() => setIsUnlocked(true)} language={currentLanguage} />;
   }
@@ -576,114 +574,99 @@ const COUNTRIES = [
         <div className="w-full max-w-[1440px] mx-auto px-6 py-12">{renderView()}</div>
       </main>
 
-  // REPLACE THE MODAL CODE (the part inside showAddAppModal && (...))
-// This is around line 295-330 in your current App.tsx
-
-{showAddAppModal && (
-  <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-    <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 max-w-md w-full shadow-2xl animate-slideUp">
-      {isWizardLoading ? (
-        <div className="text-center py-10">
-          <WalkingLoader size="lg" showText />
-          <p className="mt-4 dark:text-white font-bold">Assembling Intelligence...</p>
-        </div>
-      ) : needsCitizenship ? (
-        // *** NEW: Citizenship Collection Step ***
-        <>
-          <h3 className="text-3xl font-black mb-4 dark:text-white">Additional Information</h3>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
-            {citizenshipPrompt}
-          </p>
-          <div className="space-y-4 mb-8">
-            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Select Your Citizenship
-              </label>
-              <select
-                value={selectedCitizenship}
-                onChange={(e) => setSelectedCitizenship(e.target.value)}
-                className="w-full p-4 rounded-xl bg-slate-100 dark:bg-slate-800 dark:text-white font-bold"
-              >
-                <option value="">Choose your country of citizenship</option>
-                {COUNTRIES.map(country => (
-                  <option key={country.code} value={country.code}>
-                    {country.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => {
-                setNeedsCitizenship(false);
-                setWizardStep(1);
-              }}
-              className="flex-1 py-4 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-white rounded-2xl font-black"
-            >
-              Back
-            </button>
-            <button
-              onClick={handleCitizenshipSubmit}
-              disabled={!selectedCitizenship}
-              className="flex-1 py-4 bg-forest-green text-white rounded-2xl font-black disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Continue
-            </button>
-          </div>
-        </>
-      ) : wizardStep === 1 ? (
-        // Existing Step 1: Country & Type Selection
-        <>
-          <h3 className="text-3xl font-black mb-6 dark:text-white">{t('new_goal')}</h3>
-          <div className="space-y-4 mb-8">
-            <CountrySelector value={newAppCountry} onChange={setNewAppCountry} placeholder="Destination" />
-            <select 
-              value={newAppType} 
-              onChange={(e) => setNewAppType(e.target.value as any)} 
-              className="w-full p-4 rounded-xl bg-slate-100 dark:bg-slate-800 dark:text-white font-bold"
-            >
-              <option value="Visa">Visa</option>
-              <option value="Residency">Residency</option>
-              <option value="Work Permit">Work Permit</option>
-            </select>
-          </div>
-          <button 
-            onClick={startApplicationWizard} 
-            className="w-full py-4 bg-forest-green text-white rounded-2xl font-black"
-          >
-            Continue
-          </button>
-        </>
-      ) : (
-        // Existing Step 2: Profile Refinement
-        <>
-          <h3 className="text-2xl font-black mb-6 dark:text-white">Profile Refinement</h3>
-          <div className="space-y-4 mb-8">
-            {wizardQuestions.map(q => (
-              <div key={q.key}>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  {q.label}
-                </label>
-                <input 
-                  className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-lg dark:text-white" 
-                  onChange={(e) => setWizardAnswers(prev => ({...prev, [q.key]: e.target.value}))} 
-                />
+      {showAddAppModal && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 max-w-md w-full shadow-2xl animate-slideUp">
+            {isWizardLoading ? (
+              <div className="text-center py-10">
+                <WalkingLoader size="lg" showText />
+                <p className="mt-4 dark:text-white font-bold">Assembling Intelligence...</p>
               </div>
-            ))}
+            ) : needsCitizenship ? (
+              <>
+                <h3 className="text-3xl font-black mb-4 dark:text-white">Additional Information</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-6">
+                  {citizenshipPrompt}
+                </p>
+                <div className="space-y-4 mb-8">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Select Your Citizenship
+                    </label>
+                    <select
+                      value={selectedCitizenship}
+                      onChange={(e) => setSelectedCitizenship(e.target.value)}
+                      className="w-full p-4 rounded-xl bg-slate-100 dark:bg-slate-800 dark:text-white font-bold"
+                    >
+                      <option value="">Choose your country of citizenship</option>
+                      {COUNTRIES.map(country => (
+                        <option key={country.code} value={country.code}>
+                          {country.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setNeedsCitizenship(false);
+                      setWizardStep(1);
+                    }}
+                    className="flex-1 py-4 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-white rounded-2xl font-black"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleCitizenshipSubmit}
+                    disabled={!selectedCitizenship}
+                    className="flex-1 py-4 bg-forest-green text-white rounded-2xl font-black disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Continue
+                  </button>
+                </div>
+              </>
+            ) : wizardStep === 1 ? (
+              <>
+                <h3 className="text-3xl font-black mb-6 dark:text-white">{t('new_goal')}</h3>
+                <div className="space-y-4 mb-8">
+                  <CountrySelector value={newAppCountry} onChange={setNewAppCountry} placeholder="Destination" />
+                  <select value={newAppType} onChange={(e) => setNewAppType(e.target.value as any)} className="w-full p-4 rounded-xl bg-slate-100 dark:bg-slate-800 dark:text-white font-bold">
+                    <option value="Visa">Visa</option>
+                    <option value="Residency">Residency</option>
+                    <option value="Work Permit">Work Permit</option>
+                  </select>
+                </div>
+                <button onClick={startApplicationWizard} className="w-full py-4 bg-forest-green text-white rounded-2xl font-black">Continue</button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-2xl font-black mb-6 dark:text-white">Profile Refinement</h3>
+                <div className="space-y-4 mb-8">
+                    {wizardQuestions.map(q => (
+                        <div key={q.key}>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{q.label}</label>
+                            <input className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-lg dark:text-white" onChange={(e) => setWizardAnswers(prev => ({...prev, [q.key]: e.target.value}))} />
+                        </div>
+                    ))}
+                </div>
+                <button onClick={finishApplicationWizard} className="w-full py-4 bg-forest-green text-white rounded-2xl font-black">Initiate Pathway</button>
+              </>
+            )}
           </div>
-          <button 
-            onClick={finishApplicationWizard} 
-            className="w-full py-4 bg-forest-green text-white rounded-2xl font-black"
-          >
-            Initiate Pathway
-          </button>
-        </>
+        </div>
       )}
-    </div>
-  </div>
-)}
 
+      <div className="fixed bottom-8 right-8 z-[200] flex flex-col gap-3">
+        {toasts.map(t => (
+          <div key={t.id} className={`px-6 py-4 rounded-2xl text-white font-bold shadow-xl animate-slideUp border-b-4 ${t.type === 'success' ? 'bg-emerald-500' : 'bg-slate-800'}`}>
+            {t.message}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 /**
  * MAIN APP ENTRY
