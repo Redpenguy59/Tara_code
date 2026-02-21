@@ -42,6 +42,107 @@ async def handle_migration_request(data: MigrationRequest):
     Main endpoint that processes migration/travel requests
     Now with user profile persistence - asks for info once, stores it, never asks again
     """
+    
+    def _generate_required_documents(visa_status, destination, purpose, origin):
+        """Generate list of required documents based on visa requirements"""
+        docs = []
+        
+        # Base documents for all travelers
+        docs.append(f"Valid Passport (from {origin})")
+        
+        if visa_status and "visa required" in visa_status.lower():
+            docs.extend([
+                f"Visa Application Form for {destination}",
+                "Passport-sized Photos (2)",
+                "Proof of Accommodation (Hotel booking or invitation letter)",
+                "Proof of Financial Means (Bank statements)",
+                "Travel Itinerary",
+                "Travel Insurance"
+            ])
+            
+            if "work" in purpose.lower():
+                docs.extend([
+                    "Job Offer Letter",
+                    "Employer Sponsorship Documents",
+                    "Professional Qualifications/Certificates"
+                ])
+            elif "student" in purpose.lower() or "study" in purpose.lower():
+                docs.extend([
+                    "University Acceptance Letter",
+                    "Proof of Tuition Payment",
+                    "Academic Transcripts"
+                ])
+                
+        elif visa_status and ("e-visa" in visa_status.lower() or "evisa" in visa_status.lower()):
+            docs.extend([
+                f"e-Visa Application for {destination}",
+                "Digital Passport Photo",
+                "Proof of Accommodation",
+                "Return Flight Ticket"
+            ])
+        elif visa_status and "free" in visa_status.lower():
+            docs.extend([
+                "Return Flight Ticket",
+                "Proof of Accommodation (recommended)",
+                "Travel Insurance (recommended)"
+            ])
+            
+        return docs
+    
+    def _generate_procedural_steps(visa_status, destination, purpose, ai_analysis):
+        """Generate step-by-step procedural logic based on visa requirements"""
+        steps = []
+        step_id = 1
+        
+        if visa_status and "free" in visa_status.lower():
+            # Visa-free travel
+            steps = [
+                {"id": str(step_id), "text": f"Verify passport validity (minimum 6 months)", "isCompleted": False},
+                {"id": str(step_id + 1), "text": "Book accommodation and flights", "isCompleted": False},
+                {"id": str(step_id + 2), "text": "Arrange travel insurance", "isCompleted": False},
+                {"id": str(step_id + 3), "text": "Check entry requirements and restrictions", "isCompleted": False},
+                {"id": str(step_id + 4), "text": f"Prepare for arrival in {destination}", "isCompleted": False}
+            ]
+        elif visa_status and "e-visa" in visa_status.lower():
+            # e-Visa process
+            steps = [
+                {"id": str(step_id), "text": f"Visit {destination} e-Visa portal", "isCompleted": False},
+                {"id": str(step_id + 1), "text": "Complete online application form", "isCompleted": False},
+                {"id": str(step_id + 2), "text": "Upload required documents (passport scan, photo)", "isCompleted": False},
+                {"id": str(step_id + 3), "text": "Pay visa processing fee", "isCompleted": False},
+                {"id": str(step_id + 4), "text": "Wait for e-Visa approval (typically 3-5 business days)", "isCompleted": False},
+                {"id": str(step_id + 5), "text": "Download and print e-Visa", "isCompleted": False},
+                {"id": str(step_id + 6), "text": "Present e-Visa upon arrival", "isCompleted": False}
+            ]
+        elif visa_status and "visa required" in visa_status.lower():
+            # Full visa application process
+            steps = [
+                {"id": str(step_id), "text": f"Locate nearest {destination} embassy/consulate", "isCompleted": False},
+                {"id": str(step_id + 1), "text": "Schedule visa appointment", "isCompleted": False},
+                {"id": str(step_id + 2), "text": "Gather all required documents", "isCompleted": False},
+                {"id": str(step_id + 3), "text": "Complete visa application form", "isCompleted": False},
+                {"id": str(step_id + 4), "text": "Pay visa application fee", "isCompleted": False},
+                {"id": str(step_id + 5), "text": "Attend visa interview (if required)", "isCompleted": False},
+                {"id": str(step_id + 6), "text": "Submit biometric data (fingerprints, photo)", "isCompleted": False},
+                {"id": str(step_id + 7), "text": "Wait for visa processing (typically 2-4 weeks)", "isCompleted": False},
+                {"id": str(step_id + 8), "text": "Collect passport with visa", "isCompleted": False}
+            ]
+            
+            # Add specific steps based on purpose
+            if "work" in purpose.lower():
+                steps.insert(2, {"id": f"{step_id}a", "text": "Obtain work permit/employment authorization", "isCompleted": False})
+            elif "student" in purpose.lower():
+                steps.insert(2, {"id": f"{step_id}a", "text": "Obtain student visa approval from institution", "isCompleted": False})
+        else:
+            # Unknown status - generic steps
+            steps = [
+                {"id": str(step_id), "text": f"Research {destination} visa requirements", "isCompleted": False},
+                {"id": str(step_id + 1), "text": "Contact embassy for clarification", "isCompleted": False},
+                {"id": str(step_id + 2), "text": "Prepare documentation", "isCompleted": False}
+            ]
+        
+        return steps
+    
     print(f"📥 RECEIVED REQUEST: {data.request_type}")
     print(f"👤 USER: {data.profile.displayName} from {data.profile.nationalities}")
     print(f"🎯 GOAL: {data.type} in {data.country}")
@@ -170,6 +271,20 @@ async def handle_migration_request(data: MigrationRequest):
             # Missing information that needs to be collected
             "awaiting_feedback": awaiting_feedback,
             "needs_more_info": len(awaiting_feedback) > 0,
+            
+            # *** ADD THESE: Documents and Steps ***
+            "documents": _generate_required_documents(
+                engine_result.get("summary"),
+                data.country,
+                data.type,
+                user_nationality
+            ),
+            "steps": _generate_procedural_steps(
+                engine_result.get("summary"),
+                data.country,
+                data.type,
+                expert_analysis
+            ),
             
             # User profile info
             "user_has_stored_profile": stored_profile is not None,
