@@ -257,11 +257,12 @@ const ApplicationDetail: React.FC<ApplicationDetailProps> = ({
                             : isNextAction
                               ? 'bg-white dark:bg-slate-900 border-forest-green shadow-[0_20px_50px_rgba(27,94,75,0.08)] ring-1 ring-forest-green/5'
                               : 'bg-transparent border-transparent opacity-60 grayscale-[0.5]'
-                          }`}>
+                          }`}
+                          >
                             <div className="flex items-center justify-between mb-3">
                                <div className="flex items-center gap-3">
-                                 <h4 className={`text-xl font-black transition-all ${step.isCompleted ? 'text-slate-400 line-through' : 'text-slate-800 dark:text-white'}
-{step.text || step.title || 'Step'} 
+                                 <h4 className={`text-xl font-black transition-all ${step.isCompleted ? 'text-slate-400 line-through' : 'text-slate-800 dark:text-white'}`}>
+                                   {step.title}
                                  </h4>
                                  {step.isCompleted && (
                                    <span className="text-emerald-500 text-xs font-black uppercase tracking-widest">Completed</span>
