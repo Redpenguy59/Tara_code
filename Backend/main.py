@@ -90,18 +90,33 @@ async def handle_migration_request(data: MigrationRequest):
         return docs
     
     def _generate_procedural_steps(visa_status, destination, purpose, ai_analysis):
-        """Generate step-by-step procedural logic based on visa requirements"""
+        """Generate step-by-step procedural logic based on visa requirements
+        
+        CRITICAL: Returns steps in format expected by ApplicationDetail.tsx:
+        {
+          "id": "1",
+          "title": "Short title",
+          "description": "Detailed description",
+          "isCompleted": False
+        }
+        NOT: {"id": "1", "text": "...", "isCompleted": False}
+        """
         steps = []
         step_id = 1
         
         if visa_status and "free" in visa_status.lower():
             # Visa-free travel
             steps = [
-                {"id": str(step_id), "text": f"Verify passport validity (minimum 6 months)", "isCompleted": False},
-                {"id": str(step_id + 1), "text": "Book accommodation and flights", "isCompleted": False},
-                {"id": str(step_id + 2), "text": "Arrange travel insurance", "isCompleted": False},
-                {"id": str(step_id + 3), "text": "Check entry requirements and restrictions", "isCompleted": False},
-                {"id": str(step_id + 4), "text": f"Prepare for arrival in {destination}", "isCompleted": False}
+                {
+                    "id": str(step_id), 
+                    "title": "Verify Passport Validity",
+                    "description": f"Ensure your passport is valid for at least 6 months beyond your planned stay in {destination}",
+                    "isCompleted": False
+                },
+                {"id": str(step_id + 1), "title": "Book Accommodation", "description": "Reserve flights and accommodation with confirmation emails", "isCompleted": False},
+                {"id": str(step_id + 2), "title": "Arrange Travel Insurance", "description": "Purchase comprehensive travel insurance", "isCompleted": False},
+                {"id": str(step_id + 3), "title": "Check Entry Requirements", "description": f"Review current entry requirements for {destination}", "isCompleted": False},
+                {"id": str(step_id + 4), "title": "Prepare for Arrival", "description": f"Pack documents and prepare for arrival in {destination}", "isCompleted": False}
             ]
         elif visa_status and "e-visa" in visa_status.lower():
             # e-Visa process
@@ -133,12 +148,12 @@ async def handle_migration_request(data: MigrationRequest):
                 steps.insert(2, {"id": f"{step_id}a", "text": "Obtain work permit/employment authorization", "isCompleted": False})
             elif "student" in purpose.lower():
                 steps.insert(2, {"id": f"{step_id}a", "text": "Obtain student visa approval from institution", "isCompleted": False})
-        else:
+else:
             # Unknown status - generic steps
             steps = [
-                {"id": str(step_id), "text": f"Research {destination} visa requirements", "isCompleted": False},
-                {"id": str(step_id + 1), "text": "Contact embassy for clarification", "isCompleted": False},
-                {"id": str(step_id + 2), "text": "Prepare documentation", "isCompleted": False}
+                {"id": str(step_id), "title": "Research Requirements", "description": f"Research specific visa requirements for {destination}", "isCompleted": False},
+                {"id": str(step_id + 1), "title": "Contact Embassy", "description": "Contact embassy for clarification on requirements", "isCompleted": False},
+                {"id": str(step_id + 2), "title": "Prepare Documentation", "description": "Gather and prepare all necessary documentation", "isCompleted": False}
             ]
         
         return steps

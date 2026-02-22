@@ -163,12 +163,14 @@ const TaraCoreContent: React.FC = () => {
     try {
       // Check if citizenship is already in userProfile
       const hasStoredCitizenship = userProfile.nationalities && userProfile.nationalities.length > 0;
+      console.log("🔍 Has stored citizenship:", hasStoredCitizenship);
       
       // Prepare the profile with user_id
       const profileWithId = {
         ...userProfile,
         user_id: user?.email || userProfile.email || `temp_${Date.now()}`
       };
+      console.log("👤 Profile with ID:", profileWithId);
 
       const nationalities = hasStoredCitizenship ? userProfile.nationalities.map((n: any) => n.country) : [];
       const visaFreeData = await checkVisaFreeStatus(nationalities, newAppCountry);
@@ -189,12 +191,16 @@ const TaraCoreContent: React.FC = () => {
         travelContext
       };
 
+      console.log("📤 Calling backend with origin:", profileWithId.nationalities?.[0]?.code || "NONE");
+
       // Call backend with profile that includes user_id
       const [detailedData, resources, advisory] = await Promise.all([
         getDetailedRequirements(newAppCountry, newAppType, profileWithId, travelContext),
         getApplicationResources(newAppCountry, newAppType, profileWithId, travelContext),
         getTravelAdvisory(newAppCountry)
       ]);
+
+      console.log("📥 Backend response:", detailedData);
 
       // *** NEW: Check if backend is asking for citizenship ***
       if (detailedData.status === "INCOMPLETE" && detailedData.awaiting_feedback?.citizenship) {
@@ -214,12 +220,28 @@ const TaraCoreContent: React.FC = () => {
         return; // Don't proceed yet, wait for citizenship
       }
 
+      console.log("✅ Backend returned complete data");
+      console.log("  - Status:", detailedData.status);
+      console.log("  - Visa requirement:", detailedData.visa_requirement);
+      console.log("  - Documents:", detailedData.documents);
+      console.log("  - Steps:", detailedData.steps);
+
       // If we got here, we have all the data we need
       newApp.requiredDocs = detailedData.documents || [];
       newApp.steps = detailedData.steps || [];
       newApp.forms = resources.forms || [];
       newApp.submissionPoints = resources.submissionPoints || [];
       newApp.advisory = advisory;
+      
+      // Check for visa-free travel
+      if (detailedData.visa_requirement === "visa free" || detailedData.visa_requirement === "visa-free" || detailedData.visa_requirement?.includes("free")) {
+        console.log("✈️ VISA FREE TRAVEL!");
+        newApp.isVisaFree = true;
+        newApp.status = ApplicationStatus.VISA_FREE;
+        newApp.progress = 100;
+      }
+
+      console.log("📱 Final app before saving:", newApp);
 
       setApplications(prev => [...prev, newApp]);
       setShowAddAppModal(false);
@@ -229,7 +251,7 @@ const TaraCoreContent: React.FC = () => {
       setView('application-detail');
       addToast(`Pathway for ${newAppCountry} initiated!`, 'success');
     } catch (err) {
-      console.error("Error in finishApplicationWizard:", err);
+      console.error("❌ Error in finishApplicationWizard:", err);
       addToast('Error initializing pathway.', 'error');
     } finally {
       setIsWizardLoading(false);
@@ -250,6 +272,8 @@ const TaraCoreContent: React.FC = () => {
         return;
       }
 
+      console.log("🔍 Selected citizenship:", citizenshipData);
+
       // Update user profile with citizenship
       const updatedProfile = {
         ...userProfile,
@@ -259,6 +283,7 @@ const TaraCoreContent: React.FC = () => {
         }]
       };
       setUserProfile(updatedProfile);
+      console.log("✅ User profile updated with citizenship");
 
       // Add citizenship to the profile we're sending
       const profileWithCitizenship = addCitizenshipToProfile(
@@ -267,19 +292,50 @@ const TaraCoreContent: React.FC = () => {
         citizenshipData.code
       );
 
+      console.log("📤 Sending request with citizenship:", profileWithCitizenship);
+
       // Retry the backend call with citizenship included
       const [detailedData, resources] = await Promise.all([
         getDetailedRequirements(newAppCountry, newAppType, profileWithCitizenship, backendResponse.travelContext),
         getApplicationResources(newAppCountry, newAppType, profileWithCitizenship, backendResponse.travelContext)
       ]);
 
+      console.log("📥 Received detailedData:", detailedData);
+      console.log("📥 Received resources:", resources);
+
+      // Check if backend still says incomplete
+      if (detailedData.status === "INCOMPLETE") {
+        console.error("⚠️ Backend still returning INCOMPLETE after citizenship provided!");
+        console.log("Missing fields:", detailedData.awaiting_feedback);
+        addToast('Backend needs more information: ' + Object.keys(detailedData.awaiting_feedback || {}).join(', '), 'error');
+        return;
+      }
+
       // Now finish creating the application
       const newApp = backendResponse.newApp;
+      
+      // Log what we're setting
+      console.log("📋 Setting application data:");
+      console.log("  - documents:", detailedData.documents);
+      console.log("  - steps:", detailedData.steps);
+      console.log("  - forms:", resources.forms);
+      console.log("  - visa_requirement:", detailedData.visa_requirement);
+      
       newApp.requiredDocs = detailedData.documents || [];
       newApp.steps = detailedData.steps || [];
       newApp.forms = resources.forms || [];
       newApp.submissionPoints = resources.submissionPoints || [];
       newApp.advisory = backendResponse.advisory;
+      
+      // Check for visa-free status
+      if (detailedData.visa_requirement === "visa free" || detailedData.visa_requirement === "visa-free") {
+        console.log("✈️ VISA FREE TRAVEL DETECTED!");
+        newApp.isVisaFree = true;
+        newApp.status = ApplicationStatus.VISA_FREE;
+        newApp.progress = 100;
+      }
+
+      console.log("📱 Final application object:", newApp);
 
       setApplications(prev => [...prev, newApp]);
       setShowAddAppModal(false);
@@ -291,7 +347,7 @@ const TaraCoreContent: React.FC = () => {
       setView('application-detail');
       addToast(`Pathway for ${newAppCountry} initiated!`, 'success');
     } catch (err) {
-      console.error("Error handling citizenship:", err);
+      console.error("❌ Error handling citizenship:", err);
       addToast('Error processing citizenship information', 'error');
     } finally {
       setIsWizardLoading(false);

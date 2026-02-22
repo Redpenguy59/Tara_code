@@ -1,56 +1,32 @@
-
 import React, { useState, useRef } from 'react';
-import { Application, UserDocument, Appointment, Nationality, UserProfile, ExtractionResult } from '../types';
-import { extractDocumentData } from '../services/geminiService';
+import { UserProfile } from '../types';
 import { getTranslation, TranslationKeys } from '../services/translationService';
 
 interface ProfileProps {
-  applications: Application[];
-  documents: UserDocument[];
-  appointments: Appointment[];
   profile: UserProfile;
-  onStatClick: (type: string) => void;
   onUpdateProfile: (updates: Partial<UserProfile>) => void;
-  onAddNationality: (country: string) => void;
-  onVerifyNationality: (country: string, result: ExtractionResult | null) => void;
   language?: string;
 }
 
 const Profile: React.FC<ProfileProps> = ({ 
-  applications, 
-  documents, 
-  appointments, 
   profile,
-  onStatClick,
   onUpdateProfile,
-  onAddNationality,
-  onVerifyNationality,
   language = 'en'
 }) => {
-  const [newCountry, setNewCountry] = useState('');
-  const [verifyingCountry, setVerifyingCountry] = useState<string | null>(null);
-  const [verifyStep, setVerifyStep] = useState<1 | 2 | 3>(1); // 1: Info, 2: Upload, 3: Success
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<ExtractionResult | null>(null);
   const [showPinModal, setShowPinModal] = useState(false);
   const [newPin, setNewPin] = useState('');
   const profileInputRef = useRef<HTMLInputElement>(null);
   
   const t = (key: TranslationKeys) => getTranslation(language, key);
 
-  const stats = [
-    { label: t('active_pathways'), value: applications.length, icon: 'fa-route', color: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { label: t('documents'), value: documents.length, icon: 'fa-file-shield', color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
-    { label: t('appointments'), value: appointments.length, icon: 'fa-calendar-check', color: 'text-purple-600', bgColor: 'bg-purple-50' },
-    { label: t('approved'), value: applications.filter(a => a.status === 'Approved').length, icon: 'fa-check-double', color: 'text-orange-600', bgColor: 'bg-orange-50' },
-  ];
-
-  const handleAddNationality = () => {
-    if (newCountry) {
-      onAddNationality(newCountry);
-      setNewCountry('');
-    }
-  };
+  // Safe fallbacks for potentially undefined properties
+  const displayName = profile?.displayName || 'User';
+  const email = profile?.email || '';
+  const currentResidence = profile?.currentResidence || '';
+  const nationalities = profile?.nationalities || [];
+  const profilePicture = profile?.profilePicture || null;
+  const isSecurityEnabled = profile?.isSecurityEnabled || false;
+  const pinCode = profile?.pinCode || '';
 
   const handleSavePin = () => {
     if (newPin.length === 6) {
@@ -58,12 +34,6 @@ const Profile: React.FC<ProfileProps> = ({
       setShowPinModal(false);
       setNewPin('');
     }
-  };
-
-  const startVerification = (country: string) => {
-    setVerifyingCountry(country);
-    setVerifyStep(1);
-    setVerifyResult(null);
   };
 
   const handleProfilePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,34 +45,6 @@ const Profile: React.FC<ProfileProps> = ({
       onUpdateProfile({ profilePicture: reader.result as string });
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !verifyingCountry) return;
-
-    setIsProcessing(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        const result = await extractDocumentData(base64, file.type);
-        setVerifyResult(result);
-        setVerifyStep(3);
-        setIsProcessing(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      console.error(err);
-      setIsProcessing(false);
-    }
-  };
-
-  const finalizeVerification = () => {
-    if (verifyingCountry) {
-      onVerifyNationality(verifyingCountry, verifyResult);
-      setVerifyingCountry(null);
-    }
   };
 
   return (
@@ -120,8 +62,8 @@ const Profile: React.FC<ProfileProps> = ({
             onClick={() => profileInputRef.current?.click()}
             className="w-44 h-44 rounded-[2.5rem] bg-slate-100 dark:bg-slate-800 overflow-hidden border-8 border-white dark:border-slate-900 shadow-2xl transition-transform hover:scale-105 cursor-pointer relative"
           >
-            {profile.profilePicture ? (
-              <img src={profile.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+            {profilePicture ? (
+              <img src={profilePicture} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-300">
                 <i className="fas fa-user text-6xl"></i>
@@ -133,28 +75,12 @@ const Profile: React.FC<ProfileProps> = ({
           </div>
         </div>
         <div className="text-center md:text-left">
-          <h2 className="text-5xl font-black text-slate-800 dark:text-white tracking-tight mb-2">{profile.displayName}</h2>
+          <h2 className="text-5xl font-black text-slate-800 dark:text-white tracking-tight mb-2">{displayName}</h2>
           <p className="text-slate-400 font-bold text-lg flex items-center justify-center md:justify-start gap-3">
-            <i className="fas fa-envelope text-slate-200 dark:text-slate-700"></i> {profile.email}
+            <i className="fas fa-envelope text-slate-200 dark:text-slate-700"></i> {email}
           </p>
         </div>
       </header>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <button 
-            key={i} 
-            onClick={() => onStatClick(stat.label)}
-            className="p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 text-center space-y-3 transition-all hover:scale-[1.03] bg-white dark:bg-slate-800 group"
-          >
-            <div className={`w-14 h-14 ${stat.bgColor} dark:bg-opacity-10 ${stat.color} rounded-2xl flex items-center justify-center mx-auto mb-3 transition-all group-hover:shadow-lg text-xl`}>
-              <i className={`fas ${stat.icon}`}></i>
-            </div>
-            <p className="text-4xl font-black text-slate-800 dark:text-white tracking-tight">{stat.value}</p>
-            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">{stat.label}</p>
-          </button>
-        ))}
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-10">
@@ -168,7 +94,7 @@ const Profile: React.FC<ProfileProps> = ({
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">{t('display_name')}</label>
                 <input 
                   type="text" 
-                  value={profile.displayName} 
+                  value={displayName} 
                   onChange={(e) => onUpdateProfile({ displayName: e.target.value })}
                   className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-forest-green dark:text-white font-bold transition-all" 
                 />
@@ -177,7 +103,7 @@ const Profile: React.FC<ProfileProps> = ({
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">{t('current_base')}</label>
                 <input 
                   type="text" 
-                  value={profile.currentResidence}
+                  value={currentResidence}
                   onChange={(e) => onUpdateProfile({ currentResidence: e.target.value })}
                   className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-forest-green dark:text-white font-bold transition-all" 
                 />
@@ -196,10 +122,10 @@ const Profile: React.FC<ProfileProps> = ({
                   </div>
                 </div>
                 <button 
-                  onClick={() => onUpdateProfile({ isSecurityEnabled: !profile.isSecurityEnabled })}
-                  className={`w-14 h-8 rounded-full p-1.5 transition-all duration-300 ${profile.isSecurityEnabled ? 'bg-forest-green' : 'bg-slate-200 dark:bg-slate-700'}`}
+                  onClick={() => onUpdateProfile({ isSecurityEnabled: !isSecurityEnabled })}
+                  className={`w-14 h-8 rounded-full p-1.5 transition-all duration-300 ${isSecurityEnabled ? 'bg-forest-green' : 'bg-slate-200 dark:bg-slate-700'}`}
                 >
-                  <div className={`w-5 h-5 bg-white rounded-full shadow-lg transition-transform duration-300 ${profile.isSecurityEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                  <div className={`w-5 h-5 bg-white rounded-full shadow-lg transition-transform duration-300 ${isSecurityEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
                 </button>
               </div>
 
@@ -211,7 +137,7 @@ const Profile: React.FC<ProfileProps> = ({
                   <div>
                     <p className="font-black text-slate-800 dark:text-white">{t('access_pin')}</p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 font-bold">
-                      {profile.pinCode ? '6-digit PIN is set' : 'No PIN configured'}
+                      {pinCode ? '6-digit PIN is set' : 'No PIN configured'}
                     </p>
                   </div>
                 </div>
@@ -219,7 +145,7 @@ const Profile: React.FC<ProfileProps> = ({
                   onClick={() => setShowPinModal(true)}
                   className="bg-white dark:bg-slate-800 px-6 py-2.5 rounded-xl text-xs font-black text-forest-green shadow-sm border border-slate-100 dark:border-slate-700 hover:scale-105 transition-all"
                 >
-                  {profile.pinCode ? t('back') : t('save')}
+                  {pinCode ? 'Change' : 'Set PIN'}
                 </button>
               </div>
             </div>
@@ -229,18 +155,25 @@ const Profile: React.FC<ProfileProps> = ({
             <h3 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-3">
               <i className="fas fa-globe-americas text-forest-green"></i> {t('verified_nationalities')}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {profile.nationalities.map((nat) => (
-                <div key={nat.country} className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 group hover:bg-white dark:hover:bg-slate-800 hover:border-forest-green/20 hover:shadow-lg transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-inner font-black text-forest-green text-sm border border-slate-100 dark:border-slate-700">
-                      {nat.country.substring(0,2).toUpperCase()}
+            {nationalities.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {nationalities.map((nat: any) => (
+                  <div key={nat.country} className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 group hover:bg-white dark:hover:bg-slate-800 hover:border-forest-green/20 hover:shadow-lg transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-inner font-black text-forest-green text-sm border border-slate-100 dark:border-slate-700">
+                        {nat.country.substring(0,2).toUpperCase()}
+                      </div>
+                      <span className="font-black text-slate-700 dark:text-slate-300">{nat.country}</span>
                     </div>
-                    <span className="font-black text-slate-700 dark:text-slate-300">{nat.country}</span>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-slate-50 dark:bg-slate-900 rounded-2xl">
+                <i className="fas fa-globe text-4xl text-slate-300 mb-4"></i>
+                <p className="text-slate-400 font-bold">No nationalities added yet</p>
+              </div>
+            )}
           </section>
         </div>
 
@@ -250,11 +183,13 @@ const Profile: React.FC<ProfileProps> = ({
             <h3 className="text-xl font-black flex items-center gap-3 relative z-10">
               <i className="fas fa-bell text-forest-green"></i> {t('notification_hub')}
             </h3>
+            <p className="text-sm text-white/60 relative z-10">Stay updated with your application progress and important deadlines.</p>
           </section>
           
           <div className="p-8 rounded-[2.5rem] bg-forest-green/5 dark:bg-forest-green/10 border-2 border-dashed border-forest-green/20 text-center space-y-4">
              <i className="fas fa-cloud-arrow-up text-3xl text-forest-green opacity-40"></i>
              <h4 className="font-black text-forest-green">{t('cloud_backup')}</h4>
+             <p className="text-xs text-slate-500 dark:text-slate-400">Your data is securely synced</p>
           </div>
         </aside>
       </div>

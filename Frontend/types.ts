@@ -31,8 +31,9 @@ export interface TravelAdvisory {
 
 export interface ApplicationStep {
   id: string;
-  title: string;
-  description: string;
+  text: string;  // ✅ Matches backend
+  title?: string;  // Optional
+  description?: string;  // Optional  
   isCompleted: boolean;
 }
 
